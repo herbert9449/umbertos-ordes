@@ -18,6 +18,7 @@ export default function App() {
 
   const [selectedSupplier, setSelectedSupplier] = useState("Empire");
   const [newProduct, setNewProduct] = useState("");
+  const [newSupplier, setNewSupplier] = useState("");
   const [orderText, setOrderText] = useState("");
 
   useEffect(() => {
@@ -27,7 +28,44 @@ export default function App() {
     );
   }, [suppliers]);
 
-  const addProduct = () => {
+  const addSupplier = () => {
+    if (!newSupplier.trim()) return;
+
+    if (suppliers[newSupplier]) {
+      alert("Supplier already exists");
+      return;
+    }
+
+    setSuppliers({
+      ...suppliers,
+      [newSupplier]: []
+    });
+
+    setNewSupplier("");
+  };
+
+  const deleteSupplier = (supplierName) => {
+    if (
+      !window.confirm(
+        `Delete supplier "${supplierName}" and all products?`
+      )
+    ) {
+      return;
+    }
+
+    const updated = { ...suppliers };
+
+    delete updated[supplierName];
+
+    setSuppliers(updated);
+
+    const remaining = Object.keys(updated);
+
+    if (remaining.length > 0) {
+      setSelectedSupplier(remaining[0]);
+    }
+  };
+    const addProduct = () => {
     if (!newProduct.trim()) return;
 
     setSuppliers({
@@ -44,6 +82,19 @@ export default function App() {
     });
 
     setNewProduct("");
+  };
+
+  const deleteProduct = (index) => {
+    if (!window.confirm("Delete product?")) return;
+
+    const updated = [...suppliers[selectedSupplier]];
+
+    updated.splice(index, 1);
+
+    setSuppliers({
+      ...suppliers,
+      [selectedSupplier]: updated
+    });
   };
 
   const toggleProduct = (index) => {
@@ -91,149 +142,242 @@ export default function App() {
     setOrderText(text);
   };
 
-  const copyOrder = () => {
-    navigator.clipboard.writeText(orderText);
-    alert("Order copied!");
+  const copyOrder = async () => {
+    if (!orderText.trim()) {
+      generateOrder();
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(orderText);
+
+      const cleanedProducts =
+        suppliers[selectedSupplier].map((item) => ({
+          ...item,
+          qty: "",
+          selected: false,
+          unit: "Bottle"
+        }));
+
+      setSuppliers({
+        ...suppliers,
+        [selectedSupplier]: cleanedProducts
+      });
+
+      setOrderText("");
+
+      alert("Order copied successfully");
+    } catch (err) {
+      alert("Copy failed");
+    }
   };
 
   return (
     <div
+  style={{
+    display: "flex",
+    minHeight: "100vh",
+    background: "#111827",
+    color: "white"
+  }}
+>
+  <div
+    style={{
+      width: "250px",
+      background: "#1f2937",
+      padding: "20px"
+    }}
+  >
+    <h2>UMBERTO'S</h2>
+    <hr />
+
+    <h3>Suppliers</h3>
+
+    <input
+      type="text"
+      placeholder="New Supplier"
+      value={newSupplier}
+      onChange={(e) => setNewSupplier(e.target.value)}
       style={{
-        display: "flex",
-        minHeight: "100vh",
-        background: "#111827",
-        color: "white"
+        width: "100%",
+        padding: "8px",
+        marginBottom: "10px"
+      }}
+    />
+
+    <button
+      onClick={addSupplier}
+      style={{
+        width: "100%",
+        padding: "10px",
+        marginBottom: "15px"
       }}
     >
+      Add Supplier
+    </button>
+
+    {Object.keys(suppliers).map((supplier) => (
       <div
+        key={supplier}
         style={{
-          width: "250px",
-          background: "#1f2937",
-          padding: "20px"
+          display: "flex",
+          gap: "5px",
+          marginBottom: "10px"
         }}
       >
-        <h2>UMBERTO'S</h2>
-        <hr />
-
-        <h3>Suppliers</h3>
-
-        {Object.keys(suppliers).map((supplier) => (
-          <button
-            key={supplier}
-            onClick={() => setSelectedSupplier(supplier)}
-            style={{
-              width: "100%",
-              padding: "10px",
-              marginBottom: "10px",
-              cursor: "pointer"
-            }}
-          >
-            {supplier}
-          </button>
-        ))}
-      </div>
-
-      <div style={{ flex: 1, padding: "30px" }}>
-        <h1>Wine & Liquor Providers</h1>
-
-        <h2>{selectedSupplier}</h2>
-
-        <div style={{ marginBottom: "20px" }}>
-          <input
-            type="text"
-            placeholder="Add Product"
-            value={newProduct}
-            onChange={(e) => setNewProduct(e.target.value)}
-            style={{
-              width: "350px",
-              padding: "10px"
-            }}
-          />
-
-          <button
-            onClick={addProduct}
-            style={{
-              marginLeft: "10px",
-              padding: "10px"
-            }}
-          >
-            Add
-          </button>
-        </div>
-
-        <h3>Products</h3>
-
-        {suppliers[selectedSupplier].map((item, index) => (
-          <div
-            key={index}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              marginBottom: "10px"
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={item.selected}
-              onChange={() => toggleProduct(index)}
-            />
-
-            <div style={{ width: "300px" }}>{item.name}</div>
-
-            <input
-              type="number"
-              placeholder="Qty"
-              value={item.qty}
-              onChange={(e) => updateQty(index, e.target.value)}
-              style={{ width: "80px" }}
-            />
-
-            <select
-              value={item.unit}
-              onChange={(e) => updateUnit(index, e.target.value)}
-            >
-              <option>Bottle</option>
-              <option>Case</option>
-            </select>
-          </div>
-        ))}
-
-        <br />
-
         <button
-          onClick={generateOrder}
+          onClick={() => setSelectedSupplier(supplier)}
           style={{
-            padding: "12px",
-            marginRight: "10px"
+            flex: 1,
+            padding: "10px",
+            cursor: "pointer"
           }}
         >
-          Generate Order
+          {supplier}
         </button>
 
         <button
-          onClick={copyOrder}
+          onClick={() => deleteSupplier(supplier)}
           style={{
-            padding: "12px"
+            background: "#dc2626",
+            color: "white",
+            border: "none",
+            padding: "10px",
+            cursor: "pointer"
           }}
         >
-          Copy Order
+          🗑
         </button>
-
-        <div style={{ marginTop: "30px" }}>
-          <h3>Order Preview</h3>
-
-          <textarea
-            rows="12"
-            value={orderText}
-            readOnly
-            style={{
-              width: "100%",
-              maxWidth: "800px"
-            }}
-          />
-        </div>
       </div>
+    ))}
+  </div>
+
+  <div style={{ flex: 1, padding: "30px" }}>
+    <h1>Wine & Liquor Providers</h1>
+
+    <h2>{selectedSupplier}</h2>
+
+    <div style={{ marginBottom: "20px" }}>
+      <input
+        type="text"
+        placeholder="Add Product"
+        value={newProduct}
+        onChange={(e) => setNewProduct(e.target.value)}
+        style={{
+          width: "350px",
+          padding: "10px"
+        }}
+      />
+
+      <button
+        onClick={addProduct}
+        style={{
+          marginLeft: "10px",
+          padding: "10px"
+        }}
+      >
+        Add
+      </button>
     </div>
-  );
-}
+
+    <h3>Products</h3>
+
+    {suppliers[selectedSupplier]?.map((item, index) => (
+      <div
+        key={index}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          marginBottom: "10px"
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={item.selected}
+          onChange={() => toggleProduct(index)}
+        />
+
+        <div style={{ width: "300px" }}>
+          {item.name}
+        </div>
+
+        <button
+          onClick={() => deleteProduct(index)}
+          style={{
+            background: "#dc2626",
+            color: "white",
+            border: "none",
+            padding: "5px 10px",
+            cursor: "pointer"
+          }}
+        >
+          🗑
+        </button>
+
+        <input
+          type="number"
+          placeholder="Qty"
+          value={item.qty}
+          onChange={(e) =>
+            updateQty(index, e.target.value)
+          }
+          style={{
+            width: "80px"
+          }}
+        />
+
+        <select
+          value={item.unit}
+          onChange={(e) =>
+            updateUnit(index, e.target.value)
+          }
+        >
+          <option>Bottle</option>
+          <option>Case</option>
+        </select>
+      </div>
+    ))}
+
+    <br />
+
+    <button
+      onClick={generateOrder}
+      style={{
+        padding: "12px",
+        marginRight: "10px"
+      }}
+    >
+      Generate Order
+    </button>
+
+    <button
+      onClick={copyOrder}
+      style={{
+        padding: "12px",
+        background: "#16a34a",
+        color: "white",
+        border: "none",
+        cursor: "pointer"
+      }}
+    >
+      Copy Order & Clear
+    </button>
+
+    <div style={{ marginTop: "30px" }}>
+      <h3>Order Preview</h3>
+
+      <textarea
+        rows="12"
+        value={orderText}
+        readOnly
+        style={{
+          width: "100%",
+          maxWidth: "800px"
+        }}
+      />
+    </div>
+  </div>
+</div>
+);
+} 
