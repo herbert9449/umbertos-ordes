@@ -1,16 +1,31 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function App() {
-  const [suppliers, setSuppliers] = useState({
-    Empire: [],
-    Southern: [],
-    Opici: [],
-    Premium: []
+  const [suppliers, setSuppliers] = useState(() => {
+    const savedData = localStorage.getItem("umbertosSuppliers");
+
+    if (savedData) {
+      return JSON.parse(savedData);
+    }
+
+    return {
+      Empire: [],
+      Southern: [],
+      Opici: [],
+      Premium: []
+    };
   });
 
   const [selectedSupplier, setSelectedSupplier] = useState("Empire");
   const [newProduct, setNewProduct] = useState("");
   const [orderText, setOrderText] = useState("");
+
+  useEffect(() => {
+    localStorage.setItem(
+      "umbertosSuppliers",
+      JSON.stringify(suppliers)
+    );
+  }, [suppliers]);
 
   const addProduct = () => {
     if (!newProduct.trim()) return;
@@ -44,6 +59,7 @@ export default function App() {
 
   const updateQty = (index, value) => {
     const updated = [...suppliers[selectedSupplier]];
+
     updated[index].qty = value;
 
     setSuppliers({
@@ -54,6 +70,7 @@ export default function App() {
 
   const updateUnit = (index, value) => {
     const updated = [...suppliers[selectedSupplier]];
+
     updated[index].unit = value;
 
     setSuppliers({
@@ -162,27 +179,19 @@ export default function App() {
               onChange={() => toggleProduct(index)}
             />
 
-            <div style={{ width: "300px" }}>
-              {item.name}
-            </div>
+            <div style={{ width: "300px" }}>{item.name}</div>
 
             <input
               type="number"
               placeholder="Qty"
               value={item.qty}
-              onChange={(e) =>
-                updateQty(index, e.target.value)
-              }
-              style={{
-                width: "80px"
-              }}
+              onChange={(e) => updateQty(index, e.target.value)}
+              style={{ width: "80px" }}
             />
 
             <select
               value={item.unit}
-              onChange={(e) =>
-                updateUnit(index, e.target.value)
-              }
+              onChange={(e) => updateUnit(index, e.target.value)}
             >
               <option>Bottle</option>
               <option>Case</option>
